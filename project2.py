@@ -1,4 +1,4 @@
-# --- Upgraded Drive Time + Isochrone App with Enhanced UI/UX ---
+# --- Upgraded Drive Time + Isochrone App ---
 
 import streamlit as st
 import openrouteservice
@@ -61,20 +61,22 @@ def save_map(m, filename='map.html'):
 
 # --- Main App ---
 def main():
-    st.set_page_config(page_title="Drive Time & Isochrone Tool", layout="centered")
-    st.markdown("""
-        <h1 style='text-align: center;'>🚗 Drive Time & Isochrone Calculator</h1>
-        <p style='text-align: center;'>📍 Professional Final Year Project | 🚀 Fuel Cost, Travel Time & Radius Insights</p>
-        <hr style='margin-bottom: 30px;'>
-    """, unsafe_allow_html=True)
+    st.title("🚗 Drive Time & Isochrone Calculator")
+    st.write("Professional Final Year Project\nUpgraded with Addresses, Fuel Cost, Modes, Folium Maps!")
 
-    with st.sidebar:
-        st.subheader("⚙️ Configuration")
-        mode = st.radio("Select Mode", ("Drive Time Calculator", "Isochrone Generator"))
-        input_method = st.selectbox("Input Method", ("Manual Address", "Manual Coordinates", "Upload Excel File"))
-        transport_mode = st.selectbox("Transport Mode", ("driving-car", "cycling-regular", "foot-walking"))
-        fuel_price = st.number_input("Fuel Price (AED/liter)", min_value=0.0, value=3.5)
-        mileage = st.number_input("Car Mileage (km/liter)", min_value=1.0, value=12.0)
+    mode = st.radio("Select Mode", ("Drive Time Calculator", "Isochrone Generator"))
+
+    input_method = st.selectbox("Choose Input Method", ("Manual Address", "Manual Coordinates", "Upload Excel File"))
+
+    transport_mode = st.selectbox("Select Transport Mode", ("driving-car", "cycling-regular", "foot-walking"))
+
+    fuel_price = st.number_input("Fuel Price (per liter)", min_value=0.0, value=3.5)
+    mileage = st.number_input("Car Mileage (km per liter)", min_value=1.0, value=12.0)
+
+    # 🔧 Move slider outside function so it retains value
+    minutes = None
+    if mode == "Isochrone Generator":
+        minutes = st.slider("Select minutes for Isochrone", min_value=5, max_value=60, step=5, value=15)
 
     if input_method == "Manual Address":
         origin_address = st.text_input("Origin Address", "Dubai Mall, Dubai")
@@ -86,17 +88,17 @@ def main():
             if origin_lat is None or dest_lat is None:
                 st.error("Address geocoding failed.")
                 return
-            process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
+
+            process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage, minutes)
 
     elif input_method == "Manual Coordinates":
-        with st.form("coords_form"):
-            origin_lat = st.number_input("Origin Latitude", value=25.1972)
-            origin_lon = st.number_input("Origin Longitude", value=55.2744)
-            dest_lat = st.number_input("Destination Latitude", value=25.1975)
-            dest_lon = st.number_input("Destination Longitude", value=55.2757)
-            submitted = st.form_submit_button("Calculate")
-            if submitted:
-                process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
+        origin_lat = st.number_input("Origin Latitude", value=25.1972)
+        origin_lon = st.number_input("Origin Longitude", value=55.2744)
+        dest_lat = st.number_input("Destination Latitude", value=25.1975)
+        dest_lon = st.number_input("Destination Longitude", value=55.2757)
+
+        if st.button("Calculate"):
+            process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage, minutes)
 
     elif input_method == "Upload Excel File":
         uploaded_file = st.file_uploader("Upload Excel", type=["xlsx"])
@@ -111,44 +113,45 @@ def main():
                     else:
                         origin_lat, origin_lon = row['Origin_Lat'], row['Origin_Lon']
                         dest_lat, dest_lon = row['Destination_Lat'], row['Destination_Lon']
-                    process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
+                    process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage, minutes)
 
 # --- Core Processing Function ---
-def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_price, mileage):
+def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_price, mileage, minutes):
     m = folium.Map(location=[origin[1], origin[0]], zoom_start=12)
     mc = MarkerCluster().add_to(m)
 
     if mode == "Drive Time Calculator":
         duration, distance, geometry = get_route(origin, destination, profile)
         if duration:
-            drive_time = duration / 60
-            dist_km = distance / 1000
+            drive_time = duration / 60  # seconds to minutes
+            dist_km = distance / 1000   # meters to kilometers
             fuel_cost = (dist_km / mileage) * fuel_price
 
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Drive Time", f"{drive_time:.2f} min")
-            col2.metric("Distance", f"{dist_km:.2f} km")
-            col3.metric("Fuel Cost", f"{fuel_cost:.2f} AED")
+            st.success(f"Drive Time: {drive_time:.2f} minutes")
+            st.success(f"Distance: {dist_km:.2f} km")
+            st.success(f"Estimated Fuel Cost: {fuel_cost:.2f} AED")
 
             line = LineString(geometry['coordinates'])
             folium.GeoJson(line, tooltip="Route").add_to(m)
+
             folium.Marker(location=[origin[1], origin[0]], popup="Origin", icon=folium.Icon(color='green')).add_to(mc)
             folium.Marker(location=[destination[1], destination[0]], popup="Destination", icon=folium.Icon(color='red')).add_to(mc)
 
     elif mode == "Isochrone Generator":
-        minutes = st.slider("Isochrone Duration (minutes)", min_value=5, max_value=60, step=5, value=15)
-        isochrones = get_isochrone(origin, profile, minutes)
-        if isochrones:
-            polygon = isochrones['features'][0]['geometry']
-            folium.GeoJson(polygon, tooltip=f"{minutes} min isochrone").add_to(m)
-            folium.Marker(location=[origin[1], origin[0]], popup="Center", icon=folium.Icon(color='blue')).add_to(mc)
+        if minutes is not None:
+            isochrones = get_isochrone(origin, profile, minutes)
+            if isochrones:
+                polygon = isochrones['features'][0]['geometry']
+                folium.GeoJson(polygon, tooltip=f"{minutes} min isochrone").add_to(m)
+                folium.Marker(location=[origin[1], origin[0]], popup="Center", icon=folium.Icon(color='blue')).add_to(mc)
 
-    st.subheader("🗺️ Interactive Map")
+    # Display Folium Map
     folium_static(m)
 
+    # Download Map as HTML
     html_data = save_map(m)
     b64 = base64.b64encode(html_data).decode()
-    href = f'<a href="data:text/html;base64,{b64}" download="map.html">📥 Download Map as HTML</a>'
+    href = f'<a href="data:text/html;base64,{b64}" download="map.html">Download Map HTML</a>'
     st.markdown(href, unsafe_allow_html=True)
 
 # --- Run App ---
