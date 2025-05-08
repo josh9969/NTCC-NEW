@@ -76,7 +76,7 @@ def save_map(m, filename='map.html'):
 # --- Main App ---
 def main():
     st.markdown('<div class="title-center">🚗 Drive Time & Isochrone Calculator</div>', unsafe_allow_html=True)
-    st.write("✨ Professional Final Year Project with clean UI/UX & enhanced functionality.")
+    st.write("✨ Drivetime and Isochrone Calculation.")
 
     mode = st.sidebar.radio("Choose Mode", ("Drive Time Calculator", "Isochrone Generator"))
     input_method = st.sidebar.selectbox("Input Method", ("Manual Address", "Manual Coordinates", "Upload Excel File"))
