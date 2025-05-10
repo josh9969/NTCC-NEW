@@ -1,5 +1,3 @@
-# --- Upgraded Drive Time + Isochrone App (Enhanced UI/UX) ---
-
 import streamlit as st
 import openrouteservice
 from openrouteservice import convert
@@ -12,30 +10,53 @@ from io import BytesIO
 import base64
 from streamlit_folium import folium_static
 
-# --- Constants ---
+
 ORS_API_KEY = '5b3ce3597851110001cf62483c9fa348736d4315a694410fd874e918'  # Replace with your real API Key
 client = openrouteservice.Client(key=ORS_API_KEY)
 
-# --- Page Config ---
 st.set_page_config(page_title="Drive Time & Isochrone App", page_icon="🚗", layout="wide")
 
-# --- Custom Styles ---
+
 st.markdown("""
     <style>
-        .main {background-color: #f8f9fa;}
-        h1 {color: #2C3E50;}
-        .stButton button {
-            background-color: #3498DB;
-            color: white;
-            font-weight: bold;
-            border-radius: 0.5rem;
-        }
-        .stSelectbox, .stTextInput, .stNumberInput {
-            background-color: #F0F3F4;
-        }
-        .css-1cpxqw2 {padding-top: 2rem;}
+    .centered {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .stButton>button {
+        margin: auto;
+        display: block;
+    }
+
+    .stSlider {
+        padding: 0 20%;
+    }
+
+    .stTextInput, .stNumberInput, .stSelectbox, .stRadio, .stFileUploader {
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center !important;
+    }
+
+    .title-text {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: #4a90e2;
+        padding: 10px 0;
+    }
+
+    .subtitle-text {
+        font-size: 1.2em;
+        font-style: italic;
+        color: #666666;
+    }
     </style>
 """, unsafe_allow_html=True)
+
 
 # --- Helper Functions ---
 def geocode_address(address):
@@ -80,7 +101,7 @@ def save_map(m, filename='map.html'):
         html_data = f.read()
     return html_data
 
-# --- Core Processing Function ---
+
 def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_price, mileage):
     m = folium.Map(location=[origin[1], origin[0]], zoom_start=12)
     mc = MarkerCluster().add_to(m)
