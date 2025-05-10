@@ -91,7 +91,8 @@ def main():
         origin_lon = st.number_input("Origin Longitude", value=55.2744)
         dest_lat = st.number_input("Destination Latitude", value=25.1975)
         dest_lon = st.number_input("Destination Longitude", value=55.2757)
-
+       if mode == "Isochrone Generator":
+        minutes = st.slider("Select minutes for Isochrone", min_value=5, max_value=60, step=5, value=15)
         if st.button("Calculate"):
             process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
 
@@ -111,7 +112,7 @@ def main():
                     process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
 
 # --- Core Processing Function ---
-def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_price, mileage):
+def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_price, mileage, minutes=None):
     m = folium.Map(location=[origin[1], origin[0]], zoom_start=12)
     mc = MarkerCluster().add_to(m)
 
@@ -148,6 +149,7 @@ def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_pri
             folium.Marker(location=[destination[1], destination[0]], popup="Destination", icon=folium.Icon(color='red')).add_to(mc)
 
     elif mode == "Isochrone Generator":
+        isochrones = get_isochrone(origin, profile, minutes)
         minutes = st.slider("Select minutes for Isochrone", min_value=5, max_value=60, step=5, value=15)
         isochrones = get_isochrone(origin, profile, minutes)
         if isochrones:
