@@ -12,11 +12,11 @@ from io import BytesIO
 import base64
 from streamlit_folium import folium_static
 
-# --- Constants ---
-ORS_API_KEY = '5b3ce3597851110001cf62483c9fa348736d4315a694410fd874e918'  # Replace with your real API Key
+
+ORS_API_KEY = '5b3ce3597851110001cf62483c9fa348736d4315a694410fd874e918'  
 client = openrouteservice.Client(key=ORS_API_KEY)
 
-# --- Helper Functions ---
+
 def geocode_address(address):
     try:
         res = client.pelias_search(text=address)
@@ -59,13 +59,13 @@ def save_map(m, filename='map.html'):
         html_data = f.read()
     return html_data
 
-# --- Main App ---
+
 def main():
     st.set_page_config(layout="centered")
     with st.container():
         st.markdown("""
             <h2 style='text-align: center;'>🚗 Drive Time & Isochrone Calculator</h2>
-            <p style='text-align: center;'>Professional Final Year Project upgraded with Address Input, Fuel Cost Estimation, and Enhanced UI</p>
+            <p style='text-align: center;'>Calculation of drive time and isochrones</p>
         """, unsafe_allow_html=True)
 
     mode = st.radio("Select Mode", ("Drive Time Calculator", "Isochrone Generator"))
