@@ -74,6 +74,12 @@ def main():
     fuel_price = st.number_input("Fuel Price (per liter)", min_value=0.0, value=3.5)
     mileage = st.number_input("Car Mileage (km per liter)", min_value=1.0, value=12.0)
 
+    # 👇 Move slider outside the function
+    if mode == "Isochrone Generator":
+        minutes = st.slider("Select minutes for Isochrone", min_value=5, max_value=60, step=5, value=15)
+    else:
+        minutes = None
+
     if input_method == "Manual Address":
         origin_address = st.text_input("Origin Address", "Dubai Mall, Dubai")
         destination_address = st.text_input("Destination Address", "Burj Khalifa, Dubai")
@@ -84,17 +90,16 @@ def main():
             if origin_lat is None or dest_lat is None:
                 st.error("Address geocoding failed.")
                 return
-            process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
+            process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage, minutes)
 
     elif input_method == "Manual Coordinates":
         origin_lat = st.number_input("Origin Latitude", value=25.1972)
         origin_lon = st.number_input("Origin Longitude", value=55.2744)
         dest_lat = st.number_input("Destination Latitude", value=25.1975)
         dest_lon = st.number_input("Destination Longitude", value=55.2757)
-       if mode == "Isochrone Generator":
-        minutes = st.slider("Select minutes for Isochrone", min_value=5, max_value=60, step=5, value=15)
+
         if st.button("Calculate"):
-            process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
+            process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage, minutes)
 
     elif input_method == "Upload Excel File":
         uploaded_file = st.file_uploader("Upload Excel", type=["xlsx"])
@@ -109,7 +114,7 @@ def main():
                     else:
                         origin_lat, origin_lon = row['Origin_Lat'], row['Origin_Lon']
                         dest_lat, dest_lon = row['Destination_Lat'], row['Destination_Lon']
-                    process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage)
+                    process_drive_time_or_isochrone((origin_lon, origin_lat), (dest_lon, dest_lat), mode, transport_mode, fuel_price, mileage, minutes)
 
 # --- Core Processing Function ---
 def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_price, mileage, minutes=None):
@@ -125,23 +130,23 @@ def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_pri
 
             col1, col2, col3 = st.columns(3)
             with col2:
-                st.markdown("""
+                st.markdown(f"""
                     <div style="background-color:#eafaf1;padding:15px;border-radius:10px;text-align:center;box-shadow:2px 2px 6px #ccc;">
                         <h4>🚘 Drive Time</h4>
-                        <p><strong>{:.2f}</strong> minutes</p>
-                    </div>""".format(drive_time), unsafe_allow_html=True)
+                        <p><strong>{drive_time:.2f}</strong> minutes</p>
+                    </div>""", unsafe_allow_html=True)
 
-                st.markdown("""
+                st.markdown(f"""
                     <div style="background-color:#eafaf1;padding:15px;border-radius:10px;text-align:center;box-shadow:2px 2px 6px #ccc;margin-top:10px;">
                         <h4>📏 Distance</h4>
-                        <p><strong>{:.2f}</strong> km</p>
-                    </div>""".format(dist_km), unsafe_allow_html=True)
+                        <p><strong>{dist_km:.2f}</strong> km</p>
+                    </div>""", unsafe_allow_html=True)
 
-                st.markdown("""
+                st.markdown(f"""
                     <div style="background-color:#eafaf1;padding:15px;border-radius:10px;text-align:center;box-shadow:2px 2px 6px #ccc;margin-top:10px;">
                         <h4>💸 Fuel Cost</h4>
-                        <p><strong>{:.2f}</strong> AED</p>
-                    </div>""".format(fuel_cost), unsafe_allow_html=True)
+                        <p><strong>{fuel_cost:.2f}</strong> AED</p>
+                    </div>""", unsafe_allow_html=True)
 
             line = LineString(geometry['coordinates'])
             folium.GeoJson(line, tooltip="Route").add_to(m)
@@ -149,8 +154,6 @@ def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_pri
             folium.Marker(location=[destination[1], destination[0]], popup="Destination", icon=folium.Icon(color='red')).add_to(mc)
 
     elif mode == "Isochrone Generator":
-        isochrones = get_isochrone(origin, profile, minutes)
-        minutes = st.slider("Select minutes for Isochrone", min_value=5, max_value=60, step=5, value=15)
         isochrones = get_isochrone(origin, profile, minutes)
         if isochrones:
             polygon = isochrones['features'][0]['geometry']
@@ -167,4 +170,3 @@ def process_drive_time_or_isochrone(origin, destination, mode, profile, fuel_pri
 # --- Run App ---
 if __name__ == "__main__":
     main()
-
